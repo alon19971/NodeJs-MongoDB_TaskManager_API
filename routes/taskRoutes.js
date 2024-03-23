@@ -57,7 +57,7 @@ router.get('/:id', auth, async (req, res)=> {
         if (!task){
             return res.status(404).json({message: "Task not found"});
         }
-        res.status(200).json({task, message: "Task fetched Successfully"});
+        res.status(200).json({task, message: "Task fetched successfully"});
    } catch (err) {
         res.status(500).send({error: err});
    }
@@ -73,7 +73,7 @@ router.patch('/:id', auth, async (req, res)=> {
     //     completed : true,
     //     owner : "adasdasdsad"
     // }
-    const allowedUpdates = ['description', 'completed'];
+    const allowedUpdates = ['description', 'completed', 'category'];
     const isValidOperation = updates.every(update => allowedUpdates.includes(update));
     
     if (!isValidOperation){
@@ -101,7 +101,7 @@ router.patch('/:id', auth, async (req, res)=> {
  });
 
 
- // Dekete a task by ID
+ // Delete a task by ID
  router.delete('/:id', auth, async (req, res)=> {
     const taskid = req.params.id;
  
@@ -118,6 +118,37 @@ router.patch('/:id', auth, async (req, res)=> {
          res.status(500).send({error: err});
     }
  });
+
+
+// Get user tasks with optional filtering by category, completion status, and due date
+ router.get('/', auth, async (req, res) => {
+    const match = {};
+    
+    // Existing category filtering
+    if (req.query.category) {
+        match.category = req.query.category;
+    }
+    
+    // Extended filtering for 'completed' status
+    if (req.query.completed) {
+        match.completed = req.query.completed === 'true';
+    }
+    
+    // Extended filtering for 'dueDate'
+    if (req.query.dueDate) {
+        match.dueDate = { $lte: new Date(req.query.dueDate) }; // Tasks due on or before this date
+    }
+
+    try {
+        const tasks = await Task.find({ 
+            owner: req.user._id, 
+            ...match 
+        });
+        res.status(200).json({ tasks, count: tasks.length, message: "Tasks fetched successfully by category" });
+    } catch (err) {
+        res.status(500).send({ error: err.message });
+    }
+});
 
 
 
